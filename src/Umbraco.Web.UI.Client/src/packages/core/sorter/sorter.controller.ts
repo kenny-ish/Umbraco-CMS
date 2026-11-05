@@ -830,11 +830,19 @@ export class UmbSorterController<T, ElementType extends HTMLElement = HTMLElemen
 		// If browser thinks this was a cancelled move, we should revert the move. (based on dropEffect === 'none') [NL]
 		// But notice, this also count when releasing the mouse outside the sorters element, this i'm not sure if I agree on, would be ideal only to revert if ESC was pressed. [NL]
 		if (UmbSorterController.originalSorter && event?.dataTransfer != null && event.dataTransfer.dropEffect === 'none') {
+			const originalSorter = UmbSorterController.originalSorter;
+			let revertIndex = UmbSorterController.originalIndex ?? 0;
+			if (UmbSorterController.activeSorter === originalSorter) {
+				// A local move counts its index from before the item is taken out, so unless the item is now below
+				// its start, the start index has to be one higher to land on it.
+				const config = originalSorter.#config;
+				const activeUnique = config.getUniqueOfModel(UmbSorterController.activeItem);
+				if (originalSorter.#model.findIndex((x) => config.getUniqueOfModel(x) === activeUnique) <= revertIndex) {
+					revertIndex++;
+				}
+			}
 			// Revert move, to start position.
-			UmbSorterController.originalSorter.moveItemInModel(
-				UmbSorterController.originalIndex ?? 0,
-				UmbSorterController.activeSorter,
-			);
+			originalSorter.moveItemInModel(revertIndex, UmbSorterController.activeSorter);
 		} else if (UmbSorterController.originalSorter === undefined) {
 			// The external dropped item, should be reverted back to where it came from.
 			// TODO: Revert back to original position.

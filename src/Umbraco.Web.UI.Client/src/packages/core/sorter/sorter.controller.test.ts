@@ -209,4 +209,45 @@ describe('UmbSorterController', () => {
 			expect(element.sorter.getItem('5')).to.be.undefined;
 		});
 	});
+
+	describe('cancelled drag', () => {
+		// A new DataTransfer has the drop effect 'none', which is how the browser reports a cancelled drag on dragend.
+		const dispatchDragEvent = (unique: string, type: 'dragstart' | 'dragend') => {
+			const item = element.shadowRoot!.getElementById(unique)!;
+			item.dispatchEvent(new DragEvent(type, { bubbles: true, composed: true, dataTransfer: new DataTransfer() }));
+		};
+
+		beforeEach(async () => {
+			element.sorter.setModel(['1', '2', '3', '4']);
+			await aTimeout(100);
+		});
+
+		it('returns an item that was moved up to its start position', async () => {
+			dispatchDragEvent('2', 'dragstart');
+			await element.sorter.moveItemInModel(0, element.sorter);
+			expect(element.sorter.getModel()).to.deep.equal(['2', '1', '3', '4']);
+
+			dispatchDragEvent('2', 'dragend');
+
+			expect(element.sorter.getModel()).to.deep.equal(['1', '2', '3', '4']);
+		});
+
+		it('returns an item that was moved down to its start position', async () => {
+			dispatchDragEvent('2', 'dragstart');
+			await element.sorter.moveItemInModel(4, element.sorter);
+			expect(element.sorter.getModel()).to.deep.equal(['1', '3', '4', '2']);
+
+			dispatchDragEvent('2', 'dragend');
+
+			expect(element.sorter.getModel()).to.deep.equal(['1', '2', '3', '4']);
+		});
+
+		it('keeps an item that was not moved at its start position', () => {
+			dispatchDragEvent('2', 'dragstart');
+
+			dispatchDragEvent('2', 'dragend');
+
+			expect(element.sorter.getModel()).to.deep.equal(['1', '2', '3', '4']);
+		});
+	});
 });
